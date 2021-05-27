@@ -1,8 +1,7 @@
-from datetime import datetime
-
-from sqlalchemy import or_, and_, not_, desc
 from sqlalchemy.orm import Session
-from server import models, schemas
+from sqlalchemy import or_, and_
+from . import models, schemas
+from datetime import datetime
 
 
 def get_user(db: Session, user_id: int):
@@ -40,6 +39,15 @@ def get_messages_to_user_from(db: Session, receiver_id: int, sender_id: int, ski
         .all()
 
 
+def get_messages_to_general(db: Session, date: datetime, skip: int = 0, limit: int = 100):
+    return db.query(models.Message) \
+        .filter(models.Message.to_usr == 0, models.Message.date > date) \
+        .order_by(models.Message.date) \
+        .offset(skip) \
+        .limit(limit) \
+        .all()
+
+
 def get_messages_to_user_from_date(db: Session, receiver_id: int, date: datetime, sender_id: int, skip: int = 0,
                                    limit: int = 100):
     return db.query(models.Message) \
@@ -57,7 +65,7 @@ def get_all_messages(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_message(db: Session, message: schemas.MessageCreate, receiver_id: int):
-    db_message = models.Message(**message.dict(), date=datetime.now(), to_usr=receiver_id, is_read=False)
+    db_message = models.Message(**message.dict(), date=datetime.now(), to_usr=receiver_id)
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
@@ -93,34 +101,3 @@ def delete_message_by_id(db: Session, message_id: int):
 def get_users_by_status(db: Session, status: bool):
     db_users = db.query(models.User).filter(models.User.is_active == status).all()
     return db_users
-
-
-def update_message_status(db, receiver_id, messages_ids):
-    db_user = db.query(models.User).filter(models.User.id == receiver_id).first()
-
-    if db_user:
-        for m in messages_ids:
-            if isinstance(m, int):
-                message: models.Message = db.query(models.Message).filter(models.Message.id == m).first()
-                if message and message.to_usr == receiver_id:
-                    message.is_read = True
-    db.commit()
-    return True
-
-
-def unread_messages_to_user_from(db, receiver_id, sender_id):
-    count = db.query(models.Message) \
-        .filter(and_(and_(models.Message.to_usr == receiver_id, models.Message.from_usr == sender_id),
-                     not_(models.Message.is_read))).count()
-    return count
-
-
-def get_messages_to_user_from_latest(receiver_id, sender_id, db):
-    date = db.query(models.Message) \
-        .filter(and_(models.Message.to_usr == receiver_id, models.Message.from_usr == sender_id)) \
-        .order_by(desc(models.Message.date)).first()
-    if not date:
-        date = datetime.fromtimestamp(0)
-    else:
-        date = date.date
-    return date

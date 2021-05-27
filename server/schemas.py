@@ -17,7 +17,6 @@ class Message(MessageBase):
     id: int
     to_usr: int
     date: datetime
-    is_read: bool
 
     class Config:
         orm_mode = True
@@ -34,7 +33,6 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
     is_active: bool
-    # messages: List[Message] = []
 
     class Config:
         orm_mode = True
