@@ -15,7 +15,7 @@ app = FastAPI(title="Chat")
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: dict() = dict()
+        self.active_connections: dict = dict()
 
     async def connect(self, websocket: WebSocket, client_id):
         """
@@ -26,7 +26,7 @@ class ConnectionManager:
         """
         await websocket.accept()
         self.active_connections[client_id] = websocket
-        await manager.broadcast(f"status")
+        await self.broadcast(f"status")
 
     async def disconnect(self, client_id):
         """
@@ -35,7 +35,7 @@ class ConnectionManager:
         :return:
         """
         self.active_connections.pop(client_id)
-        await manager.broadcast(f"status")
+        await self.broadcast(f"status")
 
     async def send_personal_message(self, message: str, client_id):
         """
